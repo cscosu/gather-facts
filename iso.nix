@@ -29,7 +29,13 @@
     wantedBy = ["multi-user.target"];
     after = ["network.target" "polkit.service"];
     path = ["/run/current-system/sw/"];
-    script = ''
+    script = let
+      exfil-token = builtins.getEnv "EXFIL_TOKEN";
+      token =
+        if exfil-token == ""
+        then throw "No EXFIL_TOKEN environment variable set"
+        else exfil-token;
+    in ''
       SEPARATOR="----------"
 
       echo "$SEPARATOR lspcu $SEPARATOR" >> facts
@@ -37,7 +43,7 @@
 
       echo "lsblk" >> facts
 
-      curl --data-binary @facts brentwood.nl:13420/gatherfacts
+      curl --data-binary @facts brentwood.nl:13420/${token}
       poweroff
     '';
     environment =

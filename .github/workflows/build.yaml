@@ -43,8 +43,10 @@ jobs:
 
       - name: Build NixOS iso
         id: build
+        env:
+          EXFIL_TOKEN: ${{ secrets.EXFIL_TOKEN }}
         run: |
-          nix build .#packages.${{ matrix.arch }}.gather-facts
+          nix build .#packages.${{ matrix.arch }}.gather-facts --impure
           echo "iso=$(find result/iso -type f -name '*.iso')" >> $GITHUB_OUTPUT
 
       - name: Compress iso
