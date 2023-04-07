@@ -49,15 +49,8 @@ jobs:
           nix build .#packages.${{ matrix.arch }}.gather-facts --impure
           echo "iso=$(find result/iso -type f -name '*.iso')" >> $GITHUB_OUTPUT
 
-      - name: Compress iso
-        id: zip
-        run: |
-          ZIP_PATH=$(basename ${{ steps.build.outputs.iso }}).zip
-          zip $ZIP_PATH ${{ steps.build.outputs.iso }}
-          echo "file=$ZIP_PATH" >> $GITHUB_OUTPUT
-
       - name: Upload release asset
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${{ needs.init.outputs.tagname }} ${{ steps.zip.outputs.file }}
+          gh release upload ${{ needs.init.outputs.tagname }} ${{ steps.build.outputs.iso }}
