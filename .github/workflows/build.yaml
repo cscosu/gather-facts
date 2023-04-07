@@ -1,0 +1,59 @@
+name: build
+on: push
+permissions:
+  contents: write
+
+jobs:
+  init:
+    name: Initialize
+    runs-on: ubuntu-latest
+    outputs:
+      tagname: ${{ steps.tag-name.outputs.tagname }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Get tag name
+        id: tag-name
+        run: |
+          echo "tagname=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ steps.tag-name.outputs.tagname }} -t "Bootable ISOs" -n "NixOS images with a special startup image (${{ steps.tag-name.outputs.tagname }})"
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: init
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64-linux, aarch64-linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v19
+
+      - name: Build NixOS iso
+        id: build
+        run: |
+          nix build .#packages.${{ matrix.arch }}.gather-facts
+          echo "iso=$(find result/iso -type f -name '*.iso')" >> $GITHUB_OUTPUT
+
+      - name: Compress iso
+        id: zip
+        run: |
+          ZIP_PATH=$(basename ${{ steps.build.outputs.iso }}).zip
+          zip $ZIP_PATH ${{ steps.build.outputs.iso }}
+          echo "file=$ZIP_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload release asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.init.outputs.tagname }} ${{ steps.zip.outputs.file }}
