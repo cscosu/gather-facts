@@ -1,5 +1,5 @@
 {
-  description = "Auto fact gatherer";
+  description = "Automatic fact gatherer";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -22,5 +22,15 @@
         .system
         .build
         .isoImage;
+    })
+    // utils.lib.eachSystem (with utils.lib.system; [x86_64-linux]) (system: let
+      pkgs = import nixpkgs {
+        inherit system;
+      };
+    in {
+      devShells.default = pkgs.mkShell {
+        name = "gather-facts development environment";
+        packages = with pkgs; [magic-wormhole];
+      };
     });
 }

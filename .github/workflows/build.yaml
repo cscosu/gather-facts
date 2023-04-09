@@ -1,32 +1,9 @@
 name: build
 on: push
-permissions:
-  contents: write
 
 jobs:
-  init:
-    name: Initialize
-    runs-on: ubuntu-latest
-    outputs:
-      tagname: ${{ steps.tag-name.outputs.tagname }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Get tag name
-        id: tag-name
-        run: |
-          echo "tagname=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create ${{ steps.tag-name.outputs.tagname }} -t "Bootable ISOs" -n "NixOS images with a special startup image (${{ steps.tag-name.outputs.tagname }})"
-
   build:
     name: Build ${{ matrix.arch }}
-    needs: init
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -44,13 +21,6 @@ jobs:
       - name: Build NixOS iso
         id: build
         env:
-          EXFIL_TOKEN: ${{ secrets.EXFIL_TOKEN }}
+          WORMHOLE_CODE: "invalid-code" # use a valid, shared secret https://magic-wormhole.readthedocs.io/en/latest/api.html#code-management
         run: |
           nix build .#packages.${{ matrix.arch }}.gather-facts --impure
-          echo "iso=$(find result/iso -type f -name '*.iso')" >> $GITHUB_OUTPUT
-
-      - name: Upload release asset
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload ${{ needs.init.outputs.tagname }} ${{ steps.build.outputs.iso }}
