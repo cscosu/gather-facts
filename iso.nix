@@ -20,6 +20,7 @@
   environment.systemPackages = with pkgs; [
     dmidecode
     hwinfo
+    python3
     magic-wormhole
   ];
 
@@ -55,6 +56,12 @@
       lspci > facts/lspci
       lsmem > facts/lsmem
       dmidecode > facts/dmidecode
+
+      # generate a random ID in the form MXXXXXXXXC
+      # where M is arbitrary, X's are digits 0-9, and the last C is the Luhn checksum digit
+      ID=$(cat /dev/urandom | tr -dc 0-9 | head -c 8)
+      CHECK_DIGIT=$(python3 -c "digits = list(map(int,str('$ID' + '0'))); print((10 - (sum(digits[-1::-2]) + sum([sum(divmod(2 * d, 10)) for d in digits[-2::-2]]))) % 10)")
+      echo "M''${ID}''${CHECK_DIGIT}" > facts/id
 
       cd facts
       zip ../facts.zip *
