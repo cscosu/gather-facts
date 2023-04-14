@@ -55,6 +55,8 @@
       lsblk > facts/lsblk
       lspci > facts/lspci
       lsmem > facts/lsmem
+      lshw > facts/lshw
+      lshw -short > facts/lshw-short
       dmidecode > facts/dmidecode
 
       # generate a random ID in the form MXXXXXXXXC
