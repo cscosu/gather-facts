@@ -22,6 +22,7 @@
     hwinfo
     python3
     magic-wormhole
+    lshw
   ];
 
   services.getty.helpLine = ''
