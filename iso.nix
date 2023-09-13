@@ -23,6 +23,7 @@
     python3
     magic-wormhole
     lshw
+    smartmontools
   ];
 
   services.getty.helpLine = ''
@@ -36,10 +37,14 @@
     The system will POWER OFF after it is done.
   '';
 
-  systemd.services.install = {
-    description = "Bootstrap a NixOS installation";
+  systemd.services.gather = {
+    description = "Gather information about the system";
+    after = ["network.target"];
+    wants = ["network.target"];
     wantedBy = ["multi-user.target"];
-    after = ["network.target" "polkit.service"];
+    serviceConfig = {
+      WorkingDirectory = "/home/nixos";
+    };
     path = ["/run/current-system/sw/"];
     script = let
       wormhole-code-env = builtins.getEnv "WORMHOLE_CODE";
@@ -48,17 +53,24 @@
         then throw "No WORMHOLE_CODE environment variable set"
         else wormhole-code-env;
     in ''
-      mkdir facts
+      set -x
+      mkdir -p facts
 
-      hwinfo > facts/hwinfo
-      lscpu > facts/lscpu
-      lsusb > facts/lsusb
-      lsblk > facts/lsblk
-      lspci > facts/lspci
-      lsmem > facts/lsmem
-      lshw > facts/lshw
-      lshw -short > facts/lshw-short
-      dmidecode > facts/dmidecode
+      hwinfo > facts/hwinfo.txt
+      lscpu > facts/lscpu.txt
+      lsusb > facts/lsusb.txt
+      lsblk > facts/lsblk.txt
+      lspci > facts/lspci.txt
+      lsmem > facts/lsmem.txt
+      lshw > facts/lshw.txt
+      lshw -short > facts/lshw-short.txt
+      dmidecode > facts/dmidecode.txt
+
+      for drive in $(lsblk -o NAME -nld); do
+        if smartctl -a /dev/$drive; then
+          smartctl -a /dev/$drive > facts/smart-$drive.txt
+        fi
+      done
 
       # generate a random ID in the form MXXXXXXXXC
       # where M is arbitrary, X's are digits 0-9, and the last C is the Luhn checksum digit
